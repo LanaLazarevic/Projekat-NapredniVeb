@@ -59,6 +59,9 @@ public class MyUserDetails implements UserDetails {
     public boolean isAdmin() {
         return user.isAdmin();
     }
+    public User getUser(){
+        return user;
+    }
 
 
 }
