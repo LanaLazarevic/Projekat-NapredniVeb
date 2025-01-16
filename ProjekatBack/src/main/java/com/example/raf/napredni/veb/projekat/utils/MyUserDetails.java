@@ -56,6 +56,9 @@ public class MyUserDetails implements UserDetails {
     public String getEmail() {
         return user.getEmail();
     }
+    public boolean isAdmin() {
+        return user.isAdmin();
+    }
 
 
 }
