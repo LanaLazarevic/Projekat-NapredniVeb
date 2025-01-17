@@ -57,5 +57,15 @@ public class OrderController {
         return new ResponseEntity<>(orderService.cancelOrder(orderCancelDto), HttpStatus.OK);
     }
 
+    @PostMapping("/schedule")
+    public ResponseEntity<OrderDto> scheduleOrder(@RequestBody OrderScheduleDto orderScheduleDto){
+        MyUserDetails userDetails = (MyUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (userDetails.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("can_schedule_order"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return new ResponseEntity<>(orderService.scheduleOrder(orderScheduleDto, userDetails.getUser()), HttpStatus.CREATED);
+    }
+
 
 }

@@ -1,9 +1,6 @@
 package com.example.raf.napredni.veb.projekat.services;
 
-import com.example.raf.napredni.veb.projekat.dtos.OrderCreateDto;
-import com.example.raf.napredni.veb.projekat.dtos.OrderDto;
-import com.example.raf.napredni.veb.projekat.dtos.OrderFilterDto;
-import com.example.raf.napredni.veb.projekat.dtos.OrderCancelDto;
+import com.example.raf.napredni.veb.projekat.dtos.*;
 import com.example.raf.napredni.veb.projekat.filters.OrderFilter;
 import com.example.raf.napredni.veb.projekat.mappers.DishMapper;
 import com.example.raf.napredni.veb.projekat.mappers.OrderMapper;
@@ -56,19 +53,19 @@ public class OrderService {
         }
         Order order = new Order();
         order.setCreatedBy(user);
-        orderRepository.save(order);
+        Order createdOrder = orderRepository.save(order);
         for (String dish : orderCreateDto.getDishes()) {
             Dish dish1 = dishRepository.findByName(dish).orElseThrow(() -> new RuntimeException("Dish not found"));
-            OrderItem orderItem = new OrderItem(dish1,order);
+            OrderItem orderItem = new OrderItem(dish1,createdOrder);
             order.getOrderItems().add(orderItem);
             orderItemRepository.save(orderItem);
         }
-        updateStatus(order);
-        return orderMapper.orderToOrderDto(order);
+        updateStatus(createdOrder);
+        return orderMapper.orderToOrderDto(createdOrder);
     }
 
     @Async
-    @Transactional
+    //@Transactional
     protected void scheduleStatusUpdate(Order order, Status nextStatus, long delayInSeconds, Runnable nextTask) {
         Executors.newSingleThreadScheduledExecutor().schedule(() -> {
             order.setStatus(nextStatus);
@@ -85,7 +82,7 @@ public class OrderService {
         return (int) (Math.random() * maxDeviation);
     }
 
-    @Transactional
+    //@Transactional
     public void updateStatus(Order order) {
         scheduleStatusUpdate(order,Status.PREPARING,10 + getRandomDelay(3), () ->
                 scheduleStatusUpdate(order , Status.IN_DELIVERY, 15+ getRandomDelay(3), ()->
@@ -101,5 +98,32 @@ public class OrderService {
         order=orderMapper.orderEditDtoToOrder(order, orderCancelDto);
         orderRepository.save(order);
         return orderMapper.orderToOrderDto(order);
+    }
+
+    public OrderDto scheduleOrder(OrderScheduleDto orderScheduleDto, User user) {
+        Order order = new Order();
+        order.setCreatedBy(user);
+        order.setOrderedAt(orderScheduleDto.getOrderTime());
+        order.setStatus(Status.SCHEDULED);
+        Order createdOrder = orderRepository.save(order);
+        for (String dish : orderScheduleDto.getDishes()) {
+            Dish dish1 = dishRepository.findByName(dish).orElseThrow(() -> new RuntimeException("Dish not found"));
+            OrderItem orderItem = new OrderItem(dish1,createdOrder);
+            order.getOrderItems().add(orderItem);
+            orderItemRepository.save(orderItem);
+        }
+        return orderMapper.orderToOrderDto(createdOrder);
+    }
+
+    public OrderDto makeScheduledOrder(Order order) {
+        User user = order.getCreatedBy();
+        List<Status> orderStatuses = new ArrayList<>(List.of(Status.PREPARING, Status.IN_DELIVERY));
+        if(orderRepository.numberOfOrdersInProgress(orderStatuses)==3){
+
+        }
+        order.setStatus(Status.ORDERED);
+        Order createdOrder = orderRepository.save(order);
+        updateStatus(createdOrder);
+        return orderMapper.orderToOrderDto(createdOrder);
     }
 }
