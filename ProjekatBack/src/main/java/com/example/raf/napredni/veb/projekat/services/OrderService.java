@@ -5,7 +5,9 @@ import com.example.raf.napredni.veb.projekat.filters.OrderFilter;
 import com.example.raf.napredni.veb.projekat.mappers.DishMapper;
 import com.example.raf.napredni.veb.projekat.mappers.OrderMapper;
 import com.example.raf.napredni.veb.projekat.model.*;
+import com.example.raf.napredni.veb.projekat.model.Error;
 import com.example.raf.napredni.veb.projekat.repositories.DishRepository;
+import com.example.raf.napredni.veb.projekat.repositories.ErrorRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderItemRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderRepository;
 import jakarta.transaction.Transactional;
@@ -16,11 +18,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -29,13 +33,15 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final DishRepository dishRepository;
     private final DishMapper dishMapper;
+    private final ErrorRepository errorRepository;
 
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, OrderMapper orderMapper, DishRepository dishRepository, DishMapper dishMapper) {
+    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, OrderMapper orderMapper, DishRepository dishRepository, DishMapper dishMapper, ErrorRepository errorRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderMapper = orderMapper;
         this.dishRepository = dishRepository;
         this.dishMapper = dishMapper;
+        this.errorRepository = errorRepository;
     }
 
     public Page<OrderDto> searchOrders(Integer page, Integer size, OrderFilterDto orderFilterDto) {
@@ -49,7 +55,16 @@ public class OrderService {
     public OrderDto createOrder(OrderCreateDto orderCreateDto, User user) {
         List<Status> orderStatuses = new ArrayList<>(List.of(Status.PREPARING, Status.IN_DELIVERY));
         if(orderRepository.numberOfOrdersInProgress(orderStatuses)==3){
+            Error error = new Error();
+            String dishes = orderCreateDto.getDishes().toString().substring(1, orderCreateDto.getDishes().toString().length() - 1);
+            error.setForOrder(dishes);
+            error.setTime(LocalDateTime.now());
+            error.setUser(user);
+            error.setMessage("Failed to create order, there are already 3 orders in progress");
+            error.setOperation("create order");
 
+            errorRepository.save(error);
+            return null;
         }
         Order order = new Order();
         order.setCreatedBy(user);
@@ -119,7 +134,20 @@ public class OrderService {
         User user = order.getCreatedBy();
         List<Status> orderStatuses = new ArrayList<>(List.of(Status.PREPARING, Status.IN_DELIVERY));
         if(orderRepository.numberOfOrdersInProgress(orderStatuses)==3){
+            Error error = new Error();
+            String dishes = order.getOrderItems().stream()
+                    .map(orderItem -> orderItem.getDish().toString())
+                    .collect(Collectors.joining(", "));
+            error.setForOrder(dishes);
+            error.setTime(LocalDateTime.now());
+            error.setUser(user);
+            error.setMessage("Failed to create order, there are already 3 orders in progress");
+            error.setOperation("make schedule order");
 
+            errorRepository.save(error);
+            order.setActive(false);
+            orderRepository.save(order);
+            return null;
         }
         order.setStatus(Status.ORDERED);
         Order createdOrder = orderRepository.save(order);

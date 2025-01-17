@@ -18,7 +18,7 @@ public class OrderMapper {
         orderDto.setStatus(String.valueOf(order.getStatus()));
         orderDto.setOrderedAt(order.getOrderedAt());
         String dishes = order.getOrderItems().stream()
-                .map(orderItem -> orderItem.getDish().toString())
+                .map(orderItem -> orderItem.getDish().getName())
                 .collect(Collectors.joining(", "));
         orderDto.setDishes(dishes);
         return orderDto;
