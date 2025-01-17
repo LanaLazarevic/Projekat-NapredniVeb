@@ -10,6 +10,7 @@ import com.example.raf.napredni.veb.projekat.repositories.PermissionRepository;
 import com.example.raf.napredni.veb.projekat.repositories.UserRepository;
 
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -79,20 +80,23 @@ public class UserService {
         if(maybeUser != null && !Objects.equals(maybeUser.getUserId(), user.getUserId())){
             throw new RuntimeException("User with email " + userUpdateDto.getEmail() + " already exists");
         }
+        try {
+            user.setFirstname(userUpdateDto.getFirstname());
+            user.setLastname(userUpdateDto.getLastname());
+            user.setEmail(userUpdateDto.getEmail());
+            if (userUpdateDto.getPermissions() != null) {
+                Set<Permission> permissions = userUpdateDto.getPermissions().stream()
+                        .map(permissionName -> permissionRepository.findByName(permissionName)
+                                .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionName)))
+                        .collect(Collectors.toSet());
+                user.setPermissions(permissions);
+            }
 
-        user.setFirstname(userUpdateDto.getFirstname());
-        user.setLastname(userUpdateDto.getLastname());
-        user.setEmail(userUpdateDto.getEmail());
-        if (userUpdateDto.getPermissions() != null) {
-            Set<Permission> permissions = userUpdateDto.getPermissions().stream()
-                    .map(permissionName -> permissionRepository.findByName(permissionName)
-                            .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionName)))
-                    .collect(Collectors.toSet());
-            user.setPermissions(permissions);
+            User updatedUser = userRepository.save(user);
+            return userMapper.userToUserDto(updatedUser);
+        } catch (ObjectOptimisticLockingFailureException e){
+            throw e;
         }
-
-        User updatedUser = userRepository.save(user);
-        return userMapper.userToUserDto(updatedUser);
     }
 
 
@@ -100,6 +104,11 @@ public class UserService {
     public void deleteUser(String email) throws UsernameNotFoundException{
         User user = findUserByEmail(email);
         System.out.println(user.getUserId());
-        userRepository.deleteById(user.getUserId());
+        try {
+            userRepository.deleteById(user.getUserId());
+        } catch (ObjectOptimisticLockingFailureException e) {
+            deleteUser(email);
+        }
+
     }
 }

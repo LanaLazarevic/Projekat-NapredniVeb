@@ -34,4 +34,6 @@ public class User {
     private Set<Permission> permissions = new HashSet<>();
     @Column(nullable = false)
     private boolean admin;
+    @Version
+    private int version = 0;
 }

@@ -2,7 +2,6 @@ package com.example.raf.napredni.veb.projekat.services;
 
 import com.example.raf.napredni.veb.projekat.dtos.*;
 import com.example.raf.napredni.veb.projekat.filters.OrderFilter;
-import com.example.raf.napredni.veb.projekat.mappers.DishMapper;
 import com.example.raf.napredni.veb.projekat.mappers.OrderMapper;
 import com.example.raf.napredni.veb.projekat.model.*;
 import com.example.raf.napredni.veb.projekat.model.Error;
@@ -10,11 +9,12 @@ import com.example.raf.napredni.veb.projekat.repositories.DishRepository;
 import com.example.raf.napredni.veb.projekat.repositories.ErrorRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderItemRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -32,16 +32,16 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderMapper orderMapper;
     private final DishRepository dishRepository;
-    private final DishMapper dishMapper;
     private final ErrorRepository errorRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, OrderMapper orderMapper, DishRepository dishRepository, DishMapper dishMapper, ErrorRepository errorRepository) {
+    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, OrderMapper orderMapper, DishRepository dishRepository, ErrorRepository errorRepository, SimpMessagingTemplate messagingTemplate) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.orderMapper = orderMapper;
         this.dishRepository = dishRepository;
-        this.dishMapper = dishMapper;
         this.errorRepository = errorRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public Page<OrderDto> searchOrders(Integer page, Integer size, OrderFilterDto orderFilterDto) {
@@ -75,6 +75,7 @@ public class OrderService {
             order.getOrderItems().add(orderItem);
             orderItemRepository.save(orderItem);
         }
+        orderUpdateStatus(createdOrder);
         updateStatus(createdOrder);
         return orderMapper.orderToOrderDto(createdOrder);
     }
@@ -87,6 +88,7 @@ public class OrderService {
             if(nextStatus.equals(Status.DELIVERED))
                 order.setActive(false);
             orderRepository.save(order);
+            orderUpdateStatus(order);
             if (nextTask != null) {
                 nextTask.run();
             }
@@ -108,11 +110,28 @@ public class OrderService {
         Order order = orderRepository.findById(orderCancelDto.getId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if(!(order.getStatus().equals(Status.ORDERED) || order.getStatus().equals(Status.SCHEDULED)) && order.getStatus().equals(Status.CANCELED)){
+            Error error = new Error();
+            String dishes = order.getOrderItems().stream()
+                    .map(orderItem -> orderItem.getDish().getName())
+                    .collect(Collectors.joining(", "));
+            error.setForOrder(dishes);
+            error.setTime(LocalDateTime.now());
+            error.setUser(order.getCreatedBy());
+            error.setMessage("Cannot cancel order when it is in progress");
+            error.setOperation("cancel order in progress");
 
+            errorRepository.save(error);
+            order.setActive(false);
+            orderRepository.save(order);
+            return null;
         }
-        order=orderMapper.orderEditDtoToOrder(order, orderCancelDto);
-        orderRepository.save(order);
-        return orderMapper.orderToOrderDto(order);
+        try {
+            order=orderMapper.orderEditDtoToOrder(order, orderCancelDto);
+            orderRepository.save(order);
+            return orderMapper.orderToOrderDto(order);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw e;
+        }
     }
 
     public OrderDto scheduleOrder(OrderScheduleDto orderScheduleDto, User user) {
@@ -136,7 +155,7 @@ public class OrderService {
         if(orderRepository.numberOfOrdersInProgress(orderStatuses)==3){
             Error error = new Error();
             String dishes = order.getOrderItems().stream()
-                    .map(orderItem -> orderItem.getDish().toString())
+                    .map(orderItem -> orderItem.getDish().getName())
                     .collect(Collectors.joining(", "));
             error.setForOrder(dishes);
             error.setTime(LocalDateTime.now());
@@ -153,5 +172,10 @@ public class OrderService {
         Order createdOrder = orderRepository.save(order);
         updateStatus(createdOrder);
         return orderMapper.orderToOrderDto(createdOrder);
+    }
+
+    @Async
+    public void orderUpdateStatus(Order order) {
+        messagingTemplate.convertAndSend("/topic/orders", new Message(order.getOrderId(), order.getStatus().toString()));
     }
 }
