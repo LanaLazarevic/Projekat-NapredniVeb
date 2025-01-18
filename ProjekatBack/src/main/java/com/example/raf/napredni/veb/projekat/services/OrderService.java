@@ -9,6 +9,7 @@ import com.example.raf.napredni.veb.projekat.repositories.DishRepository;
 import com.example.raf.napredni.veb.projekat.repositories.ErrorRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderItemRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -109,7 +110,7 @@ public class OrderService {
     public OrderDto cancelOrder(OrderCancelDto orderCancelDto){
         Order order = orderRepository.findById(orderCancelDto.getId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        if(!(order.getStatus().equals(Status.ORDERED) || order.getStatus().equals(Status.SCHEDULED)) && order.getStatus().equals(Status.CANCELED)){
+        if(!(order.getStatus().equals(Status.ORDERED) || order.getStatus().equals(Status.SCHEDULED)) && !order.getStatus().equals(Status.CANCELED)){
             Error error = new Error();
             String dishes = order.getOrderItems().stream()
                     .map(orderItem -> orderItem.getDish().getName())
@@ -121,8 +122,6 @@ public class OrderService {
             error.setOperation("cancel order in progress");
 
             errorRepository.save(error);
-            order.setActive(false);
-            orderRepository.save(order);
             return null;
         }
         try {

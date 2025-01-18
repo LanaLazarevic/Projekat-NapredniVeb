@@ -5,6 +5,8 @@ import {AuthGuard} from "./auth.guard";
 import {ReadUsersComponent} from "./components/read-users/read-users.component";
 import {CreateUserComponent} from "./components/create-user/create-user.component";
 import {UpdateUserComponent} from "./components/update-user/update-user.component";
+import {SearchOrderComponent} from "./components/search-order/search-order.component";
+import {PlaceorderComponent} from "./components/placeorder/placeorder.component";
 
 const routes: Routes = [
   {
@@ -28,7 +30,17 @@ const routes: Routes = [
     component: UpdateUserComponent,
     canActivate:[AuthGuard],
     canDeactivate:[AuthGuard]
-  },
+  },{
+    path: "search",
+    component: SearchOrderComponent,
+    canActivate:[AuthGuard],
+    canDeactivate:[AuthGuard]
+  },{
+    path: "place",
+    component: PlaceorderComponent,
+    canActivate:[AuthGuard],
+    canDeactivate:[AuthGuard]
+  }
 
 ];
 

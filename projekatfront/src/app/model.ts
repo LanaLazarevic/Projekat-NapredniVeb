@@ -26,3 +26,26 @@ export interface UserCreate {
   password: string,
   permissions: Set<String>
 }
+
+export interface Order{
+  id: number;
+  createdBy: User;
+  status: string;
+  active: boolean;
+  orderedAt: Date;
+  dishes: string;
+}
+
+export interface OrderFilter{
+  from:string;
+  to:string;
+  email:string,
+  // @ts-ignore
+  statuses: List<String>,
+}
+
+export interface Dish{
+  id:number,
+  name: string,
+  price:number
+}

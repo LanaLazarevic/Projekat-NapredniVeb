@@ -20,7 +20,7 @@ public class OrderFilter {
 
     public static Specification<Order> byEmail(String email) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("orderedBy").get("email"), email);
+                criteriaBuilder.equal(root.get("createdBy").get("email"), email);
     }
 
     public static Specification<Order> withStatuses(List<Status> statuses) {

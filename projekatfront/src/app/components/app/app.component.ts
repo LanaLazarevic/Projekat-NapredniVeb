@@ -8,7 +8,7 @@ import {Router} from "@angular/router";
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit{
-  title = 'domaci3front';
+  title = 'Projekat';
   availableTabs: {label: string, route: string, canShow: () => boolean}[] = [];
 
   constructor(

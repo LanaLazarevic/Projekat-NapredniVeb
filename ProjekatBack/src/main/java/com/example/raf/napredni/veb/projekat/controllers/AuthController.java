@@ -41,7 +41,8 @@ public class AuthController {
                 new LoginResponse(
                         jwtUtil.generateJwtToken(loginRequest.getEmail(),user.getPermissions().stream()
                                 .map(Permission::getName)
-                                .collect(Collectors.toSet())),
+                                .collect(Collectors.toSet()),
+                                user.isAdmin()),
                         user.getPermissions().stream()
                                 .map(Permission::getName)
                                 .collect(Collectors.toSet())

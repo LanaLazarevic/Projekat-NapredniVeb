@@ -27,6 +27,7 @@ export class LoginService {
     localStorage.setItem("jwt", jwt)
     const decoded: any  = jwtDecode(jwt);
     this.setUserPermissions(decoded.permissions);
+    localStorage.setItem("isAdmin", decoded.isAdmin);
   }
 
   setUserPermissions(permissions: string[]): void {

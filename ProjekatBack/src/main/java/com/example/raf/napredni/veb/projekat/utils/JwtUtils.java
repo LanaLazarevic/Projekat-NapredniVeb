@@ -27,9 +27,10 @@ public class JwtUtils {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
 
-    public String generateJwtToken(String email, Set<String> permissions) {
+    public String generateJwtToken(String email, Set<String> permissions, boolean isAdmin) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("permissions", permissions);
+        claims.put("isAdmin", isAdmin);
 
         return Jwts.builder()
                 .setClaims(claims)

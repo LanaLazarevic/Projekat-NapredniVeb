@@ -32,7 +32,14 @@ export class AuthGuard implements CanActivate, CanDeactivate<unknown> {
     } else if( !this.loginservice.isAuthorized() ){
       alert('You dont have read permission.');
       this.router.navigate(['']);
+    } if (url === '/search' && !this.loginservice.hasPermission("can_search_order")) {
+      alert('Nemate dozvolu za kreiranje korisnika');
+      this.router.navigate(['']);
+    }if (url === '/place' && !this.loginservice.hasPermission("can_place_order")) {
+      alert('Nemate dozvolu za kreiranje korisnika');
+      this.router.navigate(['']);
     }
+
 
     return true
 

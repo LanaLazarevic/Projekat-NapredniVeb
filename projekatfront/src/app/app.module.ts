@@ -10,6 +10,10 @@ import {LoginService} from "./service/loginservice.service";
 import { ReadUsersComponent } from './components/read-users/read-users.component';
 import { CreateUserComponent } from './components/create-user/create-user.component';
 import { UpdateUserComponent } from './components/update-user/update-user.component';
+import { SearchOrderComponent } from './components/search-order/search-order.component';
+import {MatPaginatorModule} from "@angular/material/paginator";
+import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
+import { PlaceorderComponent } from './components/placeorder/placeorder.component';
 
 @NgModule({
   declarations: [
@@ -18,12 +22,16 @@ import { UpdateUserComponent } from './components/update-user/update-user.compon
     ReadUsersComponent,
     CreateUserComponent,
     UpdateUserComponent,
+    SearchOrderComponent,
+    PlaceorderComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
-    FormsModule
+    FormsModule,
+    BrowserAnimationsModule, // Ovo je neophodno za Angular Material
+    MatPaginatorModule
   ],
   providers: [LoginService],
   bootstrap: [AppComponent]
