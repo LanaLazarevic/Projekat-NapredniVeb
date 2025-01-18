@@ -1,0 +1,17 @@
+<div>
+  <h3>Login page</h3>
+
+  <div>
+    <form (submit)="onLogin()" class="mb-5">
+      <div class="form-group mb-2">
+        <label for="email">Email</label>
+        <input type="email" class="form-control" id="email" name="email" [(ngModel)]="email">
+      </div>
+      <div class="form-group mb-2">
+        <label for="password">Password</label>
+        <input type="password" class="form-control" id="password" name="password" [(ngModel)]="password">
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+  </div>
+</div>

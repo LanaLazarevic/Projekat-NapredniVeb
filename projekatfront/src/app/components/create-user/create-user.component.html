@@ -1,0 +1,103 @@
+<div class="container mt-4">
+  <h2>Create New User</h2>
+  <form (ngSubmit)="createUser()" #userForm="ngForm" class="mt-4">
+    <div class="mb-3">
+      <label for="name" class="form-label">First name</label>
+      <input type="text" class="form-control" id="name" name="name" [(ngModel)]="user.firstname" >
+    </div>
+    <div class="mb-3">
+      <label for="lastname" class="form-label">Last name</label>
+      <input type="text" class="form-control" id="lastname" name="lastname" [(ngModel)]="user.lastname" >
+    </div>
+    <div class="mb-3">
+      <label for="email" class="form-label">Email</label>
+      <input type="email" class="form-control" id="email" name="email" [(ngModel)]="user.email" required email #email="ngModel">
+      <div *ngIf="email.invalid && (email.dirty || email.touched)" class="text-danger">
+        Please enter a valid email address.
+      </div>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" name="password" [(ngModel)]="user.password" required minlength="4" #password="ngModel">
+      <div *ngIf="password.invalid && (password.dirty || password.touched)" class="text-danger">
+        Password must be at least 4 characters long.
+      </div>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canCreateUsers"
+             (change)="togglePermission('can_create_users')"
+             [checked]="user.permissions.has('can_create_users')">
+      <label class="form-check-label" for="canCreateUsers">Can Create Users</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canReadUsers"
+             (change)="togglePermission('can_read_users')"
+             [checked]="user.permissions.has('can_read_users')"
+             [disabled]="isPermissionDisabled('can_read_users')">
+      <label class="form-check-label" for="canReadUsers">Can Read Users</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canUpdateUsers"
+             (change)="togglePermission('can_update_users')"
+             [checked]="user.permissions.has('can_update_users')">
+      <label class="form-check-label" for="canUpdateUsers">Can Update Users</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canDeleteUsers"
+             (change)="togglePermission('can_delete_users')"
+             [checked]="user.permissions.has('can_delete_users')">
+      <label class="form-check-label" for="canDeleteUsers">Can Delete Users</label>
+    </div>
+
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canSearchOrder"
+             (change)="togglePermission('can_search_order')"
+             [checked]="user.permissions.has('can_search_order')"
+             [disabled]="isPermissionDisabled('can_search_order')">
+      <label class="form-check-label" for="canSearchOrder">Can Search Orders</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canPlaceOrder"
+             (change)="togglePermission('can_place_order')"
+             [checked]="user.permissions.has('can_place_order')">
+      <label class="form-check-label" for="canPlaceOrder">Can Place Orders</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canCancelOrder"
+             (change)="togglePermission('can_cancel_order')"
+             [checked]="user.permissions.has('can_cancel_order')">
+      <label class="form-check-label" for="canCancelOrder">Can Cancel Orders</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canTrackOrder"
+             (change)="togglePermission('can_track_order')"
+             [checked]="user.permissions.has('can_track_order')">
+      <label class="form-check-label" for="canTrackOrder">Can Track Orders</label>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             class="form-check-input"
+             id="canScheduleOrder"
+             (change)="togglePermission('can_schedule_order')"
+             [checked]="user.permissions.has('can_schedule_order')">
+      <label class="form-check-label" for="canScheduleOrder">Can Schedule Orders</label>
+    </div>
+    <button type="submit" class="btn btn-primary" [disabled]="userForm.form.invalid">Submit</button>
+  </form>
+</div>
