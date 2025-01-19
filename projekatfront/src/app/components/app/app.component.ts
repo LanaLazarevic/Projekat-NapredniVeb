@@ -52,6 +52,11 @@ export class AppComponent implements OnInit{
         label: 'Place order',
         route: '/place',
         canShow: () => permissions.includes('can_place_order')
+      },
+      {
+        label: 'Errors',
+        route: '/errors',
+        canShow: () => permissions.includes('can_place_order')
       }
     ].filter(tab => tab.canShow());
   }

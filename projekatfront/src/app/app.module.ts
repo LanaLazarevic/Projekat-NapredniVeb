@@ -14,6 +14,7 @@ import { SearchOrderComponent } from './components/search-order/search-order.com
 import {MatPaginatorModule} from "@angular/material/paginator";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import { PlaceorderComponent } from './components/placeorder/placeorder.component';
+import { ErrorsComponent } from './components/errors/errors.component';
 
 @NgModule({
   declarations: [
@@ -24,6 +25,7 @@ import { PlaceorderComponent } from './components/placeorder/placeorder.componen
     UpdateUserComponent,
     SearchOrderComponent,
     PlaceorderComponent,
+    ErrorsComponent,
   ],
   imports: [
     BrowserModule,

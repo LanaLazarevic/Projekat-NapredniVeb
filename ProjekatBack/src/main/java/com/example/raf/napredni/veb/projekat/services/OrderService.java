@@ -9,7 +9,6 @@ import com.example.raf.napredni.veb.projekat.repositories.DishRepository;
 import com.example.raf.napredni.veb.projekat.repositories.ErrorRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderItemRepository;
 import com.example.raf.napredni.veb.projekat.repositories.OrderRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,9 +21,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +34,10 @@ public class OrderService {
     private final DishRepository dishRepository;
     private final ErrorRepository errorRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final Map<Long, List<ScheduledFuture<?>>> orderScheduledTasks = new ConcurrentHashMap<>();
+
+
 
     public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, OrderMapper orderMapper, DishRepository dishRepository, ErrorRepository errorRepository, SimpMessagingTemplate messagingTemplate) {
         this.orderRepository = orderRepository;
@@ -52,6 +55,7 @@ public class OrderService {
                 .and(!Objects.isNull(orderFilterDto.getStatuses()) && !orderFilterDto.getStatuses().isEmpty() ? OrderFilter.withStatuses(orderFilterDto.getStatuses()) : null);
         return orderRepository.findAll(spec, PageRequest.of(page, size, Sort.by("orderId").descending())).map(orderMapper::orderToOrderDto);
     }
+
 
     public OrderDto createOrder(OrderCreateDto orderCreateDto, User user) {
         List<Status> orderStatuses = new ArrayList<>(List.of(Status.PREPARING, Status.IN_DELIVERY));
@@ -82,25 +86,69 @@ public class OrderService {
     }
 
     @Async
-    //@Transactional
     protected void scheduleStatusUpdate(Order order, Status nextStatus, long delayInSeconds, Runnable nextTask) {
-        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-            order.setStatus(nextStatus);
-            if(nextStatus.equals(Status.DELIVERED))
-                order.setActive(false);
-            orderRepository.save(order);
-            orderUpdateStatus(order);
-            if (nextTask != null) {
-                nextTask.run();
+        ScheduledFuture<?> future =  scheduler.schedule(() -> {
+            try {
+                List<Status> orderStatuses = new ArrayList<>(List.of(Status.PREPARING, Status.IN_DELIVERY));
+                Order currentOrder = orderRepository.findById(order.getOrderId())
+                        .orElseThrow(() -> new RuntimeException("Order not found"));
+                if(currentOrder.getStatus().equals(Status.ORDERED)&&orderRepository.numberOfOrdersInProgress(orderStatuses)==3){
+                    Error error = new Error();
+                    String dishes = currentOrder.getOrderItems().stream()
+                            .map(item -> item.getDish().getName())
+                            .collect(Collectors.joining(", "));
+                    error.setForOrder(dishes);
+                    error.setTime(LocalDateTime.now());
+                    error.setUser(currentOrder.getCreatedBy());
+                    error.setMessage("Failed to prepare order, there are already 3 orders in progress");
+                    error.setOperation("create order");
+
+                    errorRepository.save(error);
+                    currentOrder.setActive(false);
+                    currentOrder.setStatus(Status.CANCELED);
+                    orderRepository.save(currentOrder);
+                    cancelAllScheduledTasks(currentOrder.getOrderId());
+                } else{
+                    currentOrder.setStatus(nextStatus);
+                    System.out.println("Ušao u status: " + nextStatus);
+
+                    if (nextStatus.equals(Status.DELIVERED)) {
+                        currentOrder.setActive(false);
+                    }
+
+                    System.out.println("Pre save-a");
+                    orderRepository.save(currentOrder);
+                    System.out.println("Posle save-a");
+
+                    orderUpdateStatus(currentOrder);
+
+                    if (nextTask != null) {
+                        System.out.println("Ušao u if za sledeći zadatak");
+                        nextTask.run();
+                    }
+                }
+
+
+            } catch (ObjectOptimisticLockingFailureException e) {
+                System.err.println("Optimistic locking failure: " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("Greška u ažuriranju statusa: " + e.getMessage());
             }
         }, delayInSeconds, TimeUnit.SECONDS);
+        orderScheduledTasks.computeIfAbsent(order.getOrderId(), k -> new ArrayList<>()).add(future);
     }
 
     private int getRandomDelay(int maxDeviation) {
         return (int) (Math.random() * maxDeviation);
     }
+    private void cancelAllScheduledTasks(Long orderId) {
+        List<ScheduledFuture<?>> tasks = orderScheduledTasks.get(orderId);
+        if (tasks != null) {
+            tasks.forEach(task -> task.cancel(false));
+            orderScheduledTasks.remove(orderId);
+        }
+    }
 
-    //@Transactional
     public void updateStatus(Order order) {
         scheduleStatusUpdate(order,Status.PREPARING,10 + getRandomDelay(3), () ->
                 scheduleStatusUpdate(order , Status.IN_DELIVERY, 15+ getRandomDelay(3), ()->
@@ -148,6 +196,7 @@ public class OrderService {
         return orderMapper.orderToOrderDto(createdOrder);
     }
 
+
     public OrderDto makeScheduledOrder(Order order) {
         User user = order.getCreatedBy();
         List<Status> orderStatuses = new ArrayList<>(List.of(Status.PREPARING, Status.IN_DELIVERY));
@@ -159,11 +208,12 @@ public class OrderService {
             error.setForOrder(dishes);
             error.setTime(LocalDateTime.now());
             error.setUser(user);
-            error.setMessage("Failed to create order, there are already 3 orders in progress");
+            error.setMessage("Failed to start the order, there are already 3 orders in progress");
             error.setOperation("make schedule order");
 
             errorRepository.save(error);
             order.setActive(false);
+            order.setStatus(Status.CANCELED);
             orderRepository.save(order);
             return null;
         }

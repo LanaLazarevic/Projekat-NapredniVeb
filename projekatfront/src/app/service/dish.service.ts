@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import {environment} from "../../environments/environment";
 import {HttpClient, HttpHeaders, HttpParams} from "@angular/common/http";
-import {Dish, Order, OrderFilter} from "../model";
+import {Dish} from "../model";
 import {Observable} from "rxjs";
-import {PageableResponse} from "../pageable-response.model";
 
 @Injectable({
   providedIn: 'root'

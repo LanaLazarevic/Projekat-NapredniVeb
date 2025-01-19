@@ -49,3 +49,12 @@ export interface Dish{
   name: string,
   price:number
 }
+
+export interface Error{
+  errorId:number,
+  forOrder: string,
+  user: string,
+  message:string,
+  time:string;
+  operation:string
+}

@@ -13,7 +13,7 @@
       <label for="email" class="form-label">Email</label>
       <input type="email" id="email" [(ngModel)]="orderFilter.email" name="email" class="form-control" />
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" *ngIf="canTrack()">
       <label class="form-label">Statuses</label>
       <div class="form-check" *ngFor="let status of availableStatuses">
         <input
@@ -74,10 +74,10 @@
         </button>
       </li>
       <li class="page-item disabled">
-        <span class="page-link">Page {{ pageIndex + 1 }} of {{ totalPages }}</span>
+        <span class="page-link">Page {{ pageIndex + 1 }} of {{ paginatedOrders.totalPages }}</span>
       </li>
-      <li class="page-item" [class.disabled]="pageIndex === totalOrders - 1">
-        <button class="page-link" (click)="nextPage()" [disabled]="pageIndex === totalOrders - 1">
+      <li class="page-item" [class.disabled]="pageIndex === paginatedOrders.totalPages - 1">
+        <button class="page-link" (click)="nextPage()" [disabled]="pageIndex === paginatedOrders.totalPages - 1">
           Next &raquo;
         </button>
       </li>

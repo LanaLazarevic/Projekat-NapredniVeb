@@ -7,6 +7,7 @@ import {CreateUserComponent} from "./components/create-user/create-user.componen
 import {UpdateUserComponent} from "./components/update-user/update-user.component";
 import {SearchOrderComponent} from "./components/search-order/search-order.component";
 import {PlaceorderComponent} from "./components/placeorder/placeorder.component";
+import {ErrorsComponent} from "./components/errors/errors.component";
 
 const routes: Routes = [
   {
@@ -38,6 +39,11 @@ const routes: Routes = [
   },{
     path: "place",
     component: PlaceorderComponent,
+    canActivate:[AuthGuard],
+    canDeactivate:[AuthGuard]
+  },{
+    path: "errors",
+    component: ErrorsComponent,
     canActivate:[AuthGuard],
     canDeactivate:[AuthGuard]
   }

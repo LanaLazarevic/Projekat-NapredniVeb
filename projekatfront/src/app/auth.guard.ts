@@ -33,10 +33,13 @@ export class AuthGuard implements CanActivate, CanDeactivate<unknown> {
       alert('You dont have read permission.');
       this.router.navigate(['']);
     } if (url === '/search' && !this.loginservice.hasPermission("can_search_order")) {
-      alert('Nemate dozvolu za kreiranje korisnika');
+      alert('Nemate dozvolu za gledanje porudzbina');
       this.router.navigate(['']);
     }if (url === '/place' && !this.loginservice.hasPermission("can_place_order")) {
-      alert('Nemate dozvolu za kreiranje korisnika');
+      alert('Nemate dozvolu za pravljenje porudzbina');
+      this.router.navigate(['']);
+    }if (url === '/errors' && !this.loginservice.hasPermission("can_place_order")) {
+      alert('Nemate dozvolu za pravljenje porudzbina time ni ne mate greske');
       this.router.navigate(['']);
     }
 

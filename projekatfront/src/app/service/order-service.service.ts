@@ -70,7 +70,12 @@ export class OrderServiceService {
   createOrder(dishes: string[]): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}`, { dishes : dishes }, {headers:this.getHeaders()}).pipe(
       tap(() => this.refreshOrders())
-    );;
+    );
+  }
+  scheduleOrder(scheduleDto: { dishes: string[], orderTime: string }): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/schedule`, scheduleDto, {headers:this.getHeaders()}).pipe(
+      tap(() => this.refreshOrders())
+    );
   }
 
   private getHeaders() {

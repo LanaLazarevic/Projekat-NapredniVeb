@@ -1,16 +1,19 @@
-import { Component } from '@angular/core';
-import {Subscription} from "rxjs";
+import {Component, OnInit} from '@angular/core';
 import {Order, OrderFilter} from "../../model";
 import {OrderServiceService} from "../../service/order-service.service";
 import {LoginService} from "../../service/loginservice.service";
 import {PageableResponse} from "../../pageable-response.model";
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 
 @Component({
   selector: 'app-search-order',
   templateUrl: './search-order.component.html',
   styleUrls: ['./search-order.component.css']
 })
-export class SearchOrderComponent {
+export class SearchOrderComponent implements OnInit{
+  stompClient: Client | null = null;
+  isWebSocketConnected: boolean = false;
   orders: Order[] = [];
   orderFilter: OrderFilter = {
     from: '',
@@ -33,9 +36,6 @@ export class SearchOrderComponent {
   };
   pageIndex: number = 0;
   pageSize: number = 10;
-  totalOrders: number = 0;
-  totalPages:number=0;
-  private subscriptions: Subscription[] = [];
   availableStatuses: string[] = ['ORDERED', 'PREPARING', 'IN_DELIVERY', 'DELIVERED', 'CANCELED', 'SCHEDULED'];
 
   constructor(private orderService: OrderServiceService, private loginservice: LoginService) {
@@ -54,7 +54,31 @@ export class SearchOrderComponent {
     });
 
     this.getOrders();
+    if(this.canTrack()) {
+      this.onConnect(() => {
+        console.log("connected");
+        //this.sendMessage();
+      });
+    }
   }
+
+  onConnect(callback: () => void) {
+    const token = localStorage.getItem('jwt');
+    const socket = new SockJS(`http://localhost:8080/ws?jwt=${token}`);
+    this.stompClient = new Client({
+      webSocketFactory: () => socket,
+      onConnect: () => {
+        this.isWebSocketConnected = true;
+        this.stompClient?.subscribe('/topic/orders', (message) => {
+          console.log("message ", message);
+          this.getOrders();
+        });
+        callback();
+      }
+    });
+    this.stompClient.activate();
+  }
+
 
   getOrders(): void {
     this.orderService.getOrders(this.pageIndex, this.pageSize, this.orderFilter).subscribe({
@@ -142,5 +166,6 @@ export class SearchOrderComponent {
         }
       });
   }
+
 }
 
