@@ -128,13 +128,25 @@ export class SearchOrderComponent implements OnInit{
 
   onSubmit(): void {
     this.pageIndex = 0;
-    if (this.orderFilter.from) {
-      this.orderFilter.from = this.formatToLocalDateTime(new Date(this.orderFilter.from));
+
+    if (!this.orderFilter.from || !this.orderFilter.to) {
+      alert('Please enter both start and end date');
+      return;
     }
-    if (this.orderFilter.to) {
-      this.orderFilter.to = this.formatToLocalDateTime(new Date(this.orderFilter.to));
+
+    this.orderFilter.from = this.formatToLocalDateTime(new Date(this.orderFilter.from));
+    this.orderFilter.to = this.formatToLocalDateTime(new Date(this.orderFilter.to));
+
+    const fromDate = new Date(this.orderFilter.from);
+    const toDate = new Date(this.orderFilter.to);
+
+    if (fromDate > toDate) {
+      alert('Start date must be before end date');
+      return;
     }
+
     this.getOrders();
+
   }
 
   private formatToLocalDateTime(date: Date): string {
